@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "temp",
-    "slug": "temp",
+    "name": "Attendance App",
+    "slug": "attendance-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,16 +10,35 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.company.attendanceapp",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "navigationBar": {
+        "backgroundColor": "#ffffff",
+        "barStyle": "dark-content"
+      },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f673b246-04f3-48ff-9de7-c33301fab8b8"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f673b246-04f3-48ff-9de7-c33301fab8b8"
     }
   }
 }
