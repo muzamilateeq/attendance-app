@@ -48,15 +48,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (rawEmail: string) => {
     const email = rawEmail.trim().toLowerCase();
     try {
-      // 1. Get the physical device's unique ID
       const deviceId = await getDeviceId();
+      const currentHardwareVersion = `OS: ${Device.osName} ${Device.osVersion}, Build: ${Device.osBuildId}, Design: ${Device.designName}, Product: ${Device.productName}`.trim();
 
-      // 2. Query Supabase to see if this specific phone is registered
-      const { data: phoneBinding, error: phoneFetchError } = await supabase
+      let phoneBinding = null;
+
+      // 2. Query Supabase to see if this specific phone is registered (By Exact UUID)
+      const { data: exactMatch } = await supabase
         .from('device_bindings')
         .select('*')
         .eq('device_id', deviceId)
         .single();
+
+      if (exactMatch) {
+        phoneBinding = exactMatch;
+      } else {
+        // If UUID is not found, check if it's the exact same hardware (App reinstall scenario)
+        const { data: hardwareMatches } = await supabase
+          .from('device_bindings')
+          .select('*')
+          .eq('hardware_version', currentHardwareVersion)
+          .limit(1);
+          
+        if (hardwareMatches && hardwareMatches.length > 0) {
+          phoneBinding = hardwareMatches[0];
+          
+          // The user reinstalled the app and generated a new UUID, but the hardware matches.
+          // Update the DB with the new UUID to restore their session seamlessly.
+          await supabase.from('device_bindings').update({ device_id: deviceId }).eq('email', phoneBinding.email);
+        }
+      }
 
       if (phoneBinding) {
         // This phone is registered in Supabase. Does it belong to this email?
@@ -105,11 +126,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 5. If they passed all checks and are not bound yet, create the binding!
       if (!phoneBinding) {
         const phoneModel = `${Device.deviceName || 'Unknown Name'} (${Device.brand || 'Unknown'} ${Device.modelName || 'Device'})`.trim();
-        const hardwareVersion = `OS: ${Device.osName} ${Device.osVersion}, Build: ${Device.osBuildId}, Design: ${Device.designName}, Product: ${Device.productName}`.trim();
 
         const { error: insertError } = await supabase
           .from('device_bindings')
-          .insert([{ email, device_id: deviceId, phone_model: phoneModel, hardware_version: hardwareVersion }]);
+          .insert([{ email, device_id: deviceId, phone_model: phoneModel, hardware_version: currentHardwareVersion }]);
 
         if (insertError) {
           console.log('Falling back to local mock due to Supabase error:', insertError);
